@@ -38,35 +38,42 @@ const getTimetable = async (req, res) => {
     res.status(500).json({ message: "Server Error" });
   }
 };
+
 const UpdateTimetable = async (req, res) => {
   const { id } = req.params;
-  const { day, Halls } = req.body.timetable;
-
   try {
-    const timetable = await TimetableModal.findOne({ className: id });
+    // Update timetable
+    console.log("Requested ClassName:", id);
+    console.log("Requested Body:", req.body);
 
+    const timetable = await TimetableModal.findOneAndUpdate(
+      { className: id },
+      { $set: { TimeTable: req.body.timeTable } },
+      { new: true } // Return updated document
+    );
+    console.log(timetable);
     if (!timetable) {
-      return res.status(404).json({ message: "Timetable not found for class" });
+      return res.status(404).json({ message: "Timetable not found" });
     }
 
-    const dayIndex = timetable.TimeTable.findIndex((item) => item.day === day);
+    // Update hall schedule
+    const hall = await HallModal.findOneAndUpdate(
+      { hallId: req.body.hallId },
+      { $set: { schedule: req.body.schedule } },
+      { new: true } // Return updated document
+    );
 
-    if (dayIndex === -1) {
-      return res.status(404).json({ message: "Day not found in timetable" });
+    if (!hall) {
+      return res.status(404).json({ message: "Hall not found" });
     }
+    hall.save();
+    timetable.save();
 
-    console.log("Day index:", dayIndex);
-    timetable.TimeTable[dayIndex].Halls = Halls;
-
-    const updatedTimetable = await timetable.save();
-
-    res
-      .status(200)
-      .json({ message: "Timetable updated", timetable: updatedTimetable });
+    res.status(200).json({ message: "Timetable Updated", timetable });
   } catch (error) {
     console.error("Error updating timetable:", error);
     res.status(500).json({ message: "Server Error" });
   }
 };
-0;
+
 module.exports = { CreateTimetable, getTimetable, UpdateTimetable };
